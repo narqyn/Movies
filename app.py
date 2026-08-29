@@ -15,6 +15,8 @@ def get_chunk(chunk_index):
     else:
         return jsonify({"error": "Chunk not found"}), 404
 
+import os
+
 if __name__ == '__main__':
-    # Hugging Face requires port 7860
-    app.run(host='0.0.0.0', port=7860)
+    port = int(os.environ.get("PORT", 7860))
+    app.run(host='0.0.0.0', port=port)
