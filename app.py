@@ -5,9 +5,8 @@ import json
 app = Flask(__name__)
 CHUNK_FOLDER = "chunks"
 
-# Configuration
-FRAMES_PER_FILE = 100  # The amount of frames currently in your json files
-FRAMES_PER_PAGE = 90   # The safe limit Roblox can handle per request
+FRAMES_PER_FILE = 100  # Keep this 100 since your physical GitHub files have 100 frames!
+FRAMES_PER_PAGE = 15   # The safe limit Roblox can handle per request
 
 @app.route('/get_chunk/<int:page_index>', methods=['GET'])
 def get_chunk(page_index):
