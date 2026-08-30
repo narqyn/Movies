@@ -6,7 +6,7 @@ app = Flask(__name__)
 CHUNK_FOLDER = "chunks"
 
 FRAMES_PER_FILE = 100 
-FRAMES_PER_PAGE = 5  # 5 frames keeps payload tiny (~240KB) to bypass Roblox limits!
+FRAMES_PER_PAGE = 10  # 10 frames per chunk
 
 @app.route('/get_chunk/<int:page_index>', methods=['GET'])
 def get_chunk(page_index):
@@ -38,13 +38,8 @@ def get_chunk(page_index):
                     data2 = json.load(f2)
                 sliced_data.extend(data2[:frames_still_needed])
         
-        # THE SPEED FIX: Compress into solid strings, strip out '#' to save bytes
-        compressed_data = []
-        for frame in sliced_data:
-            clean_frame = [color.replace("#", "") for color in frame]
-            compressed_data.append("".join(clean_frame))
-            
-        return jsonify(compressed_data)
+        # LIGHTNING FAST: No string processing, just send the pure array directly from disk
+        return jsonify(sliced_data)
     else:
         return jsonify({"error": "End of movie"}), 404
 
