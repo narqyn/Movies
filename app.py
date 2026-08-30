@@ -5,13 +5,11 @@ import json
 app = Flask(__name__)
 CHUNK_FOLDER = "chunks"
 
-# Configuration
 FRAMES_PER_FILE = 100 
-FRAMES_PER_PAGE = 10  # 10 frames keeps the payload safe without overwhelming the server
+FRAMES_PER_PAGE = 5  # 5 frames keeps payload tiny (~240KB) to bypass Roblox limits!
 
 @app.route('/get_chunk/<int:page_index>', methods=['GET'])
 def get_chunk(page_index):
-    # Calculate the global starting frame based on what Roblox asked for
     zero_based_page = page_index - 1
     start_frame = zero_based_page * FRAMES_PER_PAGE
     
@@ -28,11 +26,9 @@ def get_chunk(page_index):
         frames_needed = FRAMES_PER_PAGE
         available_in_file = len(data) - local_start
         
-        # If the requested slice fits entirely inside the current file
         if frames_needed <= available_in_file:
             sliced_data = data[local_start : local_start + frames_needed]
         else:
-            # The slice crosses the boundary between two files
             sliced_data = data[local_start:]
             frames_still_needed = frames_needed - len(sliced_data)
             
@@ -42,8 +38,13 @@ def get_chunk(page_index):
                     data2 = json.load(f2)
                 sliced_data.extend(data2[:frames_still_needed])
         
-        # REVERTED: Send exactly as pure arrays (just like your original baseplate script needs!)
-        return jsonify(sliced_data)
+        # THE SPEED FIX: Compress into solid strings, strip out '#' to save bytes
+        compressed_data = []
+        for frame in sliced_data:
+            clean_frame = [color.replace("#", "") for color in frame]
+            compressed_data.append("".join(clean_frame))
+            
+        return jsonify(compressed_data)
     else:
         return jsonify({"error": "End of movie"}), 404
 
