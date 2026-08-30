@@ -7,9 +7,8 @@ app = Flask(__name__)
 CHUNK_FOLDER = "chunks"
 
 FRAMES_PER_FILE = 100 
-FRAMES_PER_PAGE = 90  # 90 frames = 3 solid seconds of video per request
+FRAMES_PER_PAGE = 100  # PERFECT ALIGNMENT: 1 Request = Exactly 1 File
 
-# FIX 1: Keep the last 8 chunk files directly in RAM. Zero disk lag!
 @lru_cache(maxsize=8)
 def load_chunk_file(file_index):
     file_path = os.path.join(CHUNK_FOLDER, f"chunk_{file_index}.json")
@@ -20,27 +19,15 @@ def load_chunk_file(file_index):
 
 @app.route('/get_chunk/<int:page_index>', methods=['GET'])
 def get_chunk(page_index):
-    zero_based_page = page_index - 1
-    start_frame = zero_based_page * FRAMES_PER_PAGE
+    # Because of perfect alignment, page_index maps 1:1 with file_index!
+    data = load_chunk_file(page_index)
     
-    file_index = (start_frame // FRAMES_PER_FILE) + 1
-    local_start = start_frame % FRAMES_PER_FILE
-    
-    data = load_chunk_file(file_index)
     if data is None:
         return jsonify({"error": "End of movie"}), 404
-        
-    frames_needed = FRAMES_PER_PAGE
-    sliced_data = data[local_start : local_start + frames_needed]
     
-    if len(sliced_data) < frames_needed:
-        next_data = load_chunk_file(file_index + 1)
-        if next_data:
-            sliced_data = sliced_data + next_data[: frames_needed - len(sliced_data)]
-    
-    # FIX 2: Pack 8,160 items into 1 string per frame to destroy JSON bloat
+    # Ultra-fast string compression
     compressed_data = []
-    for frame in sliced_data:
+    for frame in data:
         clean_frame = [color.replace("#", "") for color in frame]
         compressed_data.append("".join(clean_frame))
         
